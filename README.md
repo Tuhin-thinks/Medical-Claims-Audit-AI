@@ -93,6 +93,54 @@ Use multi-agent workflow to analyze and format extracted text from each class of
 -   Finally based on the last step’s output decide the final state of the claim (decide node)
 -   Return the response received from the graph invocation as a dict.
 
+### Prompts Used
+
+- For extracting text from images (OCR):
+
+    ```python
+    prompt_text = """
+        Analyze this medical document. RESPOND WITH ONLY VALID JSON matching this exact schema. No other text.
+
+        REQUIRED JSON FORMAT:
+        {
+            "doctype": "bill" | "dischargesummary" | "idcard" | "pharmacybill" | "claimform",
+            "structureddata": <structured data in form of valid JSON>,
+            "confidence": 0.0-1.0
+        }
+
+        EXTRACTION RULES BY DOCTYPE:
+
+        "bill": { "amount": float, "date": "YYYY-MM-DD", "provider": "str", "diagnosis_codes": ["str"] }
+        "dischargesummary": { "diagnosis": "str", "admission_date": "YYYY-MM-DD", "discharge_date": "YYYY-MM-DD", "doctor": "str" }
+        "idcard": { "member_id": "str", "policy_number": "str", "insurer": "str", "valid_from": "YYYY-MM-DD", "valid_to": "YYYY-MM-DD" }
+        "pharmacybill": { "amount": float, "date": "YYYY-MM-DD", "patient_name": "str", "medicines": [{"name": "str", "qty": int, "price": float}] }
+        "claimform": { "claim_number": "str", "service_dates": "str", "diagnosis_codes": ["str"], "procedure_codes": ["str"] }
+
+        OUTPUT ONLY JSON. No explanations or greetings.
+        """
+    ```
+- For validating the extracted data:
+
+    ```python
+    prompt_text = (
+        "You are validating an insurance claim package using extracted JSON details per file. "
+        "Use strict rule-based checks and conservative assumptions. Return ONLY valid JSON.\n\n"
+        "Validation goals: \n"
+        "1) total_amount: Sum all monetary amounts from 'bill' and 'pharmacybill' doctype.\n"
+        "2) Compare total_amount against claimed_amount from 'claimform' (if present). If total exceeds claimed_amount, flag an issue.\n"
+        "3) member_id_match: Check if member_id in 'idcard' appears consistently in other files.\n"
+        "4) required_docs_present: Ensure presence of at least 'idcard' and 'claimform'.\n"
+        "5) Identify any inconsistencies, missing fields, date anomalies, or low-confidence extractions.\n\n"
+        "Return JSON ONLY with schema: {\n"
+        "  'valid': boolean,\n"
+        "  'issues': [string],\n"
+        "  'total_amount': number,\n"
+        "  'member_id_match': boolean,\n"
+        "  'required_docs_present': boolean\n"
+        "}. No explanations outside JSON."
+    )
+    ```
+
 ### Why I didn’t use agents?
 
 I think agents are useful when we have to dynamically decide which tools to use based on parsed data of a file.  
