@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 from langchain_openai import OpenAI
 from typing_extensions import Self
 
+ENV_PATH = os.path.join(os.path.dirname(__file__), "..", ".env")
+load_dotenv(ENV_PATH)
+
 
 class LLM:
     """Singleton LLM class to handle the instance of OpenAI model"""
@@ -12,7 +15,6 @@ class LLM:
 
     def __new__(cls) -> Self:
         if cls._instance is None:
-            load_dotenv()
             cls._instance = super(LLM, cls).__new__(cls)
         return cls._instance
 

@@ -6,8 +6,8 @@ import pymupdf
 import pytz
 from langchain_core.messages import HumanMessage
 
-from langGraph_states import ClaimState, FileDetails, FileType, FinalDecisionState
-from llm import LLM
+from .langGraph_states import ClaimState, FileDetails, FinalDecisionState
+from .llm import LLM
 
 llm_instance = LLM()
 openai_llm = llm_instance.llm
